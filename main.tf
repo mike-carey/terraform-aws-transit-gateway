@@ -1,11 +1,17 @@
 locals {
-  vpc_attachments_without_default_route_table_association = {
-    for k, v in var.vpc_attachments : k => v if lookup(v, "transit_gateway_default_route_table_association", true) != true
-  }
+  vpc_attachments_without_default_route_table_association = [
+    for k, v in var.vpc_attachments : {
+      key   = k
+      value = v
+    } if lookup(v, "transit_gateway_default_route_table_association", true) != true
+  ]
 
-  vpc_attachments_without_default_route_table_propagation = {
-    for k, v in var.vpc_attachments : k => v if lookup(v, "transit_gateway_default_route_table_propagation", true) != true
-  }
+  vpc_attachments_without_default_route_table_propagation = [
+    for k, v in var.vpc_attachments : {
+      key   = k
+      value = v
+    } if lookup(v, "transit_gateway_default_route_table_propagation", true) != true
+  ]
 
   // List of maps with key and route values
   vpc_attachments_with_routes = chunklist(flatten([
@@ -86,19 +92,19 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "this" {
 }
 
 resource "aws_ec2_transit_gateway_route_table_association" "this" {
-  for_each = local.vpc_attachments_without_default_route_table_association
+  count = length(local.vpc_attachments_without_default_route_table_association)
 
   // Create association if it was not set already by aws_ec2_transit_gateway_vpc_attachment resource
-  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.this[each.key].id
-  transit_gateway_route_table_id = coalesce(lookup(each.value, "transit_gateway_route_table_id", null), var.transit_gateway_route_table_id, aws_ec2_transit_gateway_route_table.this[0].id)
+  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.this[local.vpc_attachments_without_default_route_table_association[count.index].key].id
+  transit_gateway_route_table_id = coalesce(lookup(local.vpc_attachments_without_default_route_table_association[count.index].value, "transit_gateway_route_table_id", null), var.transit_gateway_route_table_id, aws_ec2_transit_gateway_route_table.this[0].id)
 }
 
 resource "aws_ec2_transit_gateway_route_table_propagation" "this" {
-  for_each = local.vpc_attachments_without_default_route_table_propagation
+  count = length(local.vpc_attachments_without_default_route_table_propagation)
 
   // Create association if it was not set already by aws_ec2_transit_gateway_vpc_attachment resource
-  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.this[each.key].id
-  transit_gateway_route_table_id = coalesce(lookup(each.value, "transit_gateway_route_table_id", null), var.transit_gateway_route_table_id, aws_ec2_transit_gateway_route_table.this[0].id)
+  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.this[local.vpc_attachments_without_default_route_table_propagation[count.index].key].id
+  transit_gateway_route_table_id = coalesce(lookup(local.vpc_attachments_without_default_route_table_propagation[count.index].value, "transit_gateway_route_table_id", null), var.transit_gateway_route_table_id, aws_ec2_transit_gateway_route_table.this[0].id)
 }
 
 ##########################
