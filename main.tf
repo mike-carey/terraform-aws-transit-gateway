@@ -63,7 +63,7 @@ resource "aws_ec2_transit_gateway_route" "this" {
   destination_cidr_block = local.vpc_attachments_with_routes[count.index][1]["destination_cidr_block"]
   blackhole              = lookup(local.vpc_attachments_with_routes[count.index][1], "blackhole", null)
 
-  transit_gateway_route_table_id = var.create_tgw ? aws_ec2_transit_gateway_route_table.this[0].id : var.transit_gateway_route_table_id
+  transit_gateway_route_table_id = var.create_tgw && length(aws_ec2_transit_gateway_route_table.this) > 0 ? aws_ec2_transit_gateway_route_table.this[0].id : var.transit_gateway_route_table_id
   transit_gateway_attachment_id  = tobool(lookup(local.vpc_attachments_with_routes[count.index][1], "blackhole", false)) == false ? aws_ec2_transit_gateway_vpc_attachment.this[local.vpc_attachments_with_routes[count.index][0]["key"]].id : null
 }
 
@@ -95,16 +95,32 @@ resource "aws_ec2_transit_gateway_route_table_association" "this" {
   count = length(local.vpc_attachments_without_default_route_table_association)
 
   // Create association if it was not set already by aws_ec2_transit_gateway_vpc_attachment resource
-  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.this[local.vpc_attachments_without_default_route_table_association[count.index].key].id
-  transit_gateway_route_table_id = coalesce(lookup(local.vpc_attachments_without_default_route_table_association[count.index].value, "transit_gateway_route_table_id", null), var.transit_gateway_route_table_id, aws_ec2_transit_gateway_route_table.this[0].id)
+  transit_gateway_attachment_id = aws_ec2_transit_gateway_vpc_attachment.this[local.vpc_attachments_without_default_route_table_association[count.index].key].id
+  transit_gateway_route_table_id = coalesce(
+    lookup(
+      local.vpc_attachments_without_default_route_table_association[count.index].value,
+      "transit_gateway_route_table_id",
+      null
+    ),
+    var.transit_gateway_route_table_id,
+    length(aws_ec2_transit_gateway_route_table.this) > 0 ? aws_ec2_transit_gateway_route_table.this[0].id : null
+  )
 }
 
 resource "aws_ec2_transit_gateway_route_table_propagation" "this" {
   count = length(local.vpc_attachments_without_default_route_table_propagation)
 
   // Create association if it was not set already by aws_ec2_transit_gateway_vpc_attachment resource
-  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.this[local.vpc_attachments_without_default_route_table_propagation[count.index].key].id
-  transit_gateway_route_table_id = coalesce(lookup(local.vpc_attachments_without_default_route_table_propagation[count.index].value, "transit_gateway_route_table_id", null), var.transit_gateway_route_table_id, aws_ec2_transit_gateway_route_table.this[0].id)
+  transit_gateway_attachment_id = aws_ec2_transit_gateway_vpc_attachment.this[local.vpc_attachments_without_default_route_table_propagation[count.index].key].id
+  transit_gateway_route_table_id = coalesce(
+    lookup(
+      local.vpc_attachments_without_default_route_table_propagation[count.index].value,
+      "transit_gateway_route_table_id",
+      null
+    ),
+    var.transit_gateway_route_table_id,
+    length(aws_ec2_transit_gateway_route_table.this) > 0 ? aws_ec2_transit_gateway_route_table.this[0].id : null
+  )
 }
 
 ##########################
