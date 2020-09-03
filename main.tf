@@ -37,13 +37,15 @@ resource "aws_ec2_transit_gateway" "this" {
     var.tags,
     var.tgw_tags,
   )
+
+  depends_on = [aws_ram_resource_share_accepter.this]
 }
 
 #########################
 # Route table and routes
 #########################
 resource "aws_ec2_transit_gateway_route_table" "this" {
-  count = var.create_tgw ? 1 : 0
+  count = var.create_tgw && ! var.enable_default_route_table_association ? 1 : 0
 
   transit_gateway_id = aws_ec2_transit_gateway.this[0].id
 
@@ -63,8 +65,12 @@ resource "aws_ec2_transit_gateway_route" "this" {
   destination_cidr_block = local.vpc_attachments_with_routes[count.index][1]["destination_cidr_block"]
   blackhole              = lookup(local.vpc_attachments_with_routes[count.index][1], "blackhole", null)
 
-  transit_gateway_route_table_id = var.create_tgw && length(aws_ec2_transit_gateway_route_table.this) > 0 ? aws_ec2_transit_gateway_route_table.this[0].id : var.transit_gateway_route_table_id
-  transit_gateway_attachment_id  = tobool(lookup(local.vpc_attachments_with_routes[count.index][1], "blackhole", false)) == false ? aws_ec2_transit_gateway_vpc_attachment.this[local.vpc_attachments_with_routes[count.index][0]["key"]].id : null
+  transit_gateway_route_table_id = coalesce(
+    var.create_tgw && length(aws_ec2_transit_gateway_route_table.this) > 0 ? aws_ec2_transit_gateway_route_table.this[0].id : null,
+    var.transit_gateway_route_table_id,
+    length(aws_ec2_transit_gateway.this) > 0 ? aws_ec2_transit_gateway.this[0].association_default_route_table_id : null
+  )
+  transit_gateway_attachment_id = tobool(lookup(local.vpc_attachments_with_routes[count.index][1], "blackhole", false)) == false ? aws_ec2_transit_gateway_vpc_attachment.this[local.vpc_attachments_with_routes[count.index][0]["key"]].id : null
 }
 
 ###########################################################
@@ -103,7 +109,8 @@ resource "aws_ec2_transit_gateway_route_table_association" "this" {
       null
     ),
     var.transit_gateway_route_table_id,
-    length(aws_ec2_transit_gateway_route_table.this) > 0 ? aws_ec2_transit_gateway_route_table.this[0].id : null
+    length(aws_ec2_transit_gateway_route_table.this) > 0 ? aws_ec2_transit_gateway_route_table.this[0].id : null,
+    length(aws_ec2_transit_gateway.this) > 0 ? aws_ec2_transit_gateway.this[0].association_default_route_table_id : null
   )
 }
 
@@ -119,7 +126,8 @@ resource "aws_ec2_transit_gateway_route_table_propagation" "this" {
       null
     ),
     var.transit_gateway_route_table_id,
-    length(aws_ec2_transit_gateway_route_table.this) > 0 ? aws_ec2_transit_gateway_route_table.this[0].id : null
+    length(aws_ec2_transit_gateway_route_table.this) > 0 ? aws_ec2_transit_gateway_route_table.this[0].id : null,
+    length(aws_ec2_transit_gateway.this) > 0 ? aws_ec2_transit_gateway.this[0].association_default_route_table_id : null
   )
 }
 

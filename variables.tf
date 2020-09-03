@@ -34,20 +34,8 @@ variable "enable_default_route_table_propagation" {
   default     = true
 }
 
-variable "number_of_vpc_attachments_with_default_route_table_propagation" {
-  description = "The number of vpc_attachments that have default_route_table_propogation set to true"
-  type        = number
-  default     = 0
-}
-
 variable "number_of_vpc_attachments_without_default_route_table_propagation" {
   description = "The number of vpc_attachments that have default_route_table_propogation set to false"
-  type        = number
-  default     = 0
-}
-
-variable "number_of_vpc_attachments_with_default_route_table_association" {
-  description = "The number of vpc_attachments that have default_route_table_association set to true"
   type        = number
   default     = 0
 }
