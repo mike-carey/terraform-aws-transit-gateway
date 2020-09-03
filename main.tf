@@ -92,7 +92,7 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "this" {
 }
 
 resource "aws_ec2_transit_gateway_route_table_association" "this" {
-  count = length(local.vpc_attachments_without_default_route_table_association)
+  count = var.number_of_vpc_attachments_without_default_route_table_association
 
   // Create association if it was not set already by aws_ec2_transit_gateway_vpc_attachment resource
   transit_gateway_attachment_id = aws_ec2_transit_gateway_vpc_attachment.this[local.vpc_attachments_without_default_route_table_association[count.index].key].id
@@ -108,7 +108,7 @@ resource "aws_ec2_transit_gateway_route_table_association" "this" {
 }
 
 resource "aws_ec2_transit_gateway_route_table_propagation" "this" {
-  count = length(local.vpc_attachments_without_default_route_table_propagation)
+  count = var.number_of_vpc_attachments_without_default_route_table_propagation
 
   // Create association if it was not set already by aws_ec2_transit_gateway_vpc_attachment resource
   transit_gateway_attachment_id = aws_ec2_transit_gateway_vpc_attachment.this[local.vpc_attachments_without_default_route_table_propagation[count.index].key].id
